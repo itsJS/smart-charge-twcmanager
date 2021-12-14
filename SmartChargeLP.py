@@ -5,9 +5,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #------Global Vars---------
-min_total_power_required = 29.3
-max_total_power_required = 89.3
+car_battery_capacity = 75                  # Capacity: 75kwh
+car_soc = 1.0                              # Read from TeslaAPI
+required_min_car_soc = 0.2 * car_battery_capacity
 
+avg_home_consumption = 14.3                # Read from previous data  
+
+if car_soc > 0.2:
+    required_min_car_soc = 0
+
+min_total_power_required = avg_home_consumption + required_min_car_soc          
+max_total_power_required = avg_home_consumption + ((1 - car_soc) * car_battery_capacity)
 
 #-------Powerwall----------
 powerwalls_soc = 0.8                       # Read from TeslaAPI
@@ -15,10 +23,9 @@ if powerwalls_soc < 0.2:
     powerwalls_soc = 0.2
 powerwall_power = powerwalls_soc * 24.4
 
-
 #-------Solar Panels----------
-amps = 9        # Read from SolarAPI
-duration = 24    # Read from SolarAPI
+amps = 20         # Read from SolarAPI
+duration = 10    # Read from SolarAPI
 
 beta_is_sunny = 1
 if amps >= 5:
@@ -38,9 +45,9 @@ lhs_ineq = [[0, 0, powerwall_power],                # Max. Powerwall Consumption
             [-1, -solar_power, -powerwall_power],   # Min. Supplied Total Power in [kwh]
             [1, solar_power, powerwall_power]]      # Max. Supplied Total Power in [kwh]
 
-rhs_ineq = [19.52,                   # Max. Powerwall Consumption [kwh]
-            -4.88+powerwall_power,   # Min. Soc in Powerwall
-            solar_power,             # Einspeisen
+rhs_ineq = [19.52,                            # Max. Powerwall Consumption [kwh]
+            -4.88+powerwall_power,            # Min. Soc in Powerwall
+            solar_power,                      # Einspeisen
             -min_total_power_required,        # Min. Supplied Total Power [kwh]
             max_total_power_required]         # Max. Supplied Total Power Worst Case [kwh] -- this no. will change based on the amount of power we need.
               
@@ -59,16 +66,20 @@ print(opt)
 
 #-------Visualization----------
 objects = ('Grid', 'Solar', 'Powerwalls')
-y_pos = np.arange(len(objects))
-performance = [opt.x[0], 
-               opt.x[1] * solar_power,
-               opt.x[2] * powerwall_power]
+x = np.arange(len(objects))
+y1_power_provider_usage = [opt.x[0], 
+     opt.x[1] * solar_power,
+     opt.x[2] * powerwall_power]
+y2_power_provider_capacity = [0, 
+               (solar_power - (opt.x[1] * solar_power)),
+               (powerwall_power - (opt.x[2] * powerwall_power))]
 
-plt.bar(y_pos, performance, color=['red', 'green', 'blue'], align='center', alpha=0.5)
-plt.xticks(y_pos, objects)
+plt.bar(x, y1_power_provider_usage, color=['red', 'green', 'blue'], align='center', alpha=0.8)
+plt.bar(x, y2_power_provider_capacity, color=['grey', 'grey', 'grey'], bottom=y1_power_provider_usage, alpha=0.5)
+plt.xticks(x, objects)
 plt.ylabel('Usage in [kwh]')
 plt.title('Power consumption allocation [kwh]')
-
+plt.grid(color='#95a5a6', linestyle='--', linewidth=2, axis='y', alpha=0.3)
 plt.show()
 
 print("Grid Pull: ", round(opt.x[0],2), "[kwh]")
