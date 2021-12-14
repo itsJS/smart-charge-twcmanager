@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt; plt.rcdefaults()
 import numpy as np
 import matplotlib.pyplot as plt
 
-#------Global Vars---------
-car_battery_capacity = 75                  # Capacity: 75kwh
-car_soc = 1.0                              # Read from TeslaAPI
+#------Car---------
+car_soc = 0.5                                # Read from TeslaAPI
+car_battery_capacity = 75                    # Capacity: 75kwh
 required_min_car_soc = 0.2 * car_battery_capacity
 
+#------Global Vars---------
 avg_home_consumption = 14.3                # Read from previous data  
 
 if car_soc > 0.2:
@@ -24,8 +25,8 @@ if powerwalls_soc < 0.2:
 powerwall_power = powerwalls_soc * 24.4
 
 #-------Solar Panels----------
-amps = 20         # Read from SolarAPI
-duration = 10    # Read from SolarAPI
+amps = 9         # Read from SolarAPI
+duration = 30    # Read from SolarAPI
 
 beta_is_sunny = 1
 if amps >= 5:
@@ -42,14 +43,14 @@ objective_function = [1, -solar_power, powerwall_power]
 lhs_ineq = [[0, 0, powerwall_power],                # Max. Powerwall Consumption [kwh]
             [0, 0, powerwall_power],                # Min. Soc in Powerwall
             [-1, solar_power, 0],                   # Einspeisen
-            [-1, -solar_power, -powerwall_power],   # Min. Supplied Total Power in [kwh]
-            [1, solar_power, powerwall_power]]      # Max. Supplied Total Power in [kwh]
+            [-1 , 0, -powerwall_power],   # Min. Supplied Total Power in [kwh]
+            [1, 0, powerwall_power]]      # Max. Supplied Total Power in [kwh]
 
 rhs_ineq = [19.52,                            # Max. Powerwall Consumption [kwh]
             -4.88+powerwall_power,            # Min. Soc in Powerwall
             solar_power,                      # Einspeisen
-            -min_total_power_required,        # Min. Supplied Total Power [kwh]
-            max_total_power_required]         # Max. Supplied Total Power Worst Case [kwh] -- this no. will change based on the amount of power we need.
+            -min_total_power_required + solar_power,        # Min. Supplied Total Power [kwh]
+            max_total_power_required - solar_power]         # Max. Supplied Total Power Worst Case [kwh] -- this no. will change based on the amount of power we need.
               
 
 bnd = [(float("-inf"), float("inf")),  # Bounds of x1 --> Grid
@@ -85,7 +86,7 @@ plt.show()
 print("Grid Pull: ", round(opt.x[0],2), "[kwh]")
 print("Solar Pull: ", round((opt.x[1] * solar_power),2), "[kwh] from", round(solar_power,2), "[kwh]")
 print("Powerwalls Pull: ", round((opt.x[2] * powerwall_power),2), "[kwh] from", round(powerwall_power,2), "[kwh]")
-total_pulled_power = opt.x[0] + (opt.x[1] * solar_power) + opt.x[2] * powerwall_power
+total_pulled_power = (opt.x[0] + solar_power * (1 - opt.x[1]))+ (opt.x[1] * solar_power) + opt.x[2] * powerwall_power
 print("Total:", round(total_pulled_power,2), "[kwh]")
 print("Optimized Coefficient Values:", opt.x)
 
