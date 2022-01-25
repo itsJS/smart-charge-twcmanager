@@ -61,11 +61,11 @@ solar_power = 230 * amps * duration * (1/1000)
 objective_function = [grid_power, -solar_power, beta * acc_power]
 
 #----Constraints
-lhs_ineq = [[0,   0,            acc_power ],                # (4.37) - Max. Accumulator Consumption [kwh]
-            [0,   0,            acc_power ],                # (4.38) - Min. Soc in Accumulator [kwh]
-            [-1,  solar_power,  0         ],                # (4.36) - Grid Export
+lhs_ineq = [[0,   0,             acc_power],                # (4.37) - Max. Accumulator Consumption [kwh]
+            [0,   0,             acc_power],                # (4.38) - Min. Soc in Accumulator [kwh]
+            [-1,  solar_power,   0        ],                # (4.36) - Grid Export
             [-1,  0,            -acc_power],                # (4.39) - Min. #Power demanded [kwh]
-            [1,   0,            acc_power ]]                # (4.40) - Max. #Power demanded [kwh] 
+            [1,   0,             acc_power]]                # (4.40) - Max. #Power demanded [kwh] 
 
 rhs_ineq = [(1 - acc_soc_min) * acc_capacity,               # (4.37) - Max. Accumulator Consumption [kwh]
             -(acc_soc_min * acc_capacity) + acc_power,      # (4.38) - Min. Soc in Accumulator [kwh]
