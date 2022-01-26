@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 #------Functions---------
 def g_function(x, y):
     if x <= y:
-        return 0
+        return 0 #since there is no solar power anymore available we return 0, cause all solar power will go to charge the acc anyways
     else:
         return -(x-y)
 
@@ -20,8 +20,8 @@ def f_function(x, y):
 #*************Power Consumers*************
 
 #------Car
-car_soc = 0.7                                # Read from TeslaAPI
-car_battery_capacity = 75                    # Capacity: 75kwh
+car_soc = float(input("Enter car soc:"))           # Read from TeslaAPI
+car_battery_capacity = 75                   # Capacity: 75kwh
 car_soc_min = 0.2
 car_soc_min_kwh = 0
 car_discharge_level = (1 - car_soc) * car_battery_capacity
@@ -41,7 +41,7 @@ max_total_power_required = avg_home_consumption + car_discharge_level
 grid_power = 1                      # Constant: 1[kWh]
 
 #----Accumulator
-acc_soc = 0.4                       # Read from TeslaAPI
+acc_soc = float(input("Enter acc soc:"))           # Read from TeslaAPI
 acc_soc_min = 0.2
 acc_capacity = 24.4
 acc_power = acc_soc * acc_capacity
@@ -51,8 +51,8 @@ if acc_soc < acc_soc_min:
     acc_soc = acc_soc_min #TODO: why do I hardcode this?
 
 #----Solar Power
-amps = 9                                            # Read from SolarAPI
-duration = 18 #Bug 18 - 31                                     # Read from SolarAPI
+amps = float(input("Enter solar power amps:")) # Read from SolarAPI
+duration = float(input("Enter solar power duration:")) #Bug 18 - 31  SOLVED! Automate testing # Read from SolarAPI
 solar_power = 230 * amps * duration * (1/1000)
 
 #*************Linear Program Model*************
@@ -86,9 +86,15 @@ opt = linprog(c=objective_function,
               method="simplex")
 
 #-----Post Evaluations
-#-Grid
+#-Grid (Pull stands for import & export in respect to the sign)
 grid_pull_pre_accumulator_charge = opt.x[0] * grid_power
 grid_pull = g_function(solar_power * (1-opt.x[1]), (1-acc_soc) * acc_capacity)
+
+#If no solar power remains to export to grid, that means one of two things: either we broke even or we imported power from grid 
+grid_import = 0
+if grid_pull == 0:
+    grid_pull = grid_pull_pre_accumulator_charge # needed for visualization, cause it depicts import/ export
+    grid_import = grid_pull_pre_accumulator_charge # needed for calculating total power consumed, as adding the grid pull when exporting power would mess up the total consumed power calculation
 
 #-Solar
 consumed_solar_power_for_acc_charge = f_function(solar_power * (1-opt.x[1]), (1-acc_soc) * acc_capacity)
@@ -101,7 +107,7 @@ acc_level_after_discharge = round((acc_power - consumed_acc_power), 2)
 acc_level_after_charge = acc_level_after_discharge + consumed_solar_power_for_acc_charge
 
 #-Total Consumed Power
-total_pulled_power = consumed_solar_power + consumed_acc_power
+total_pulled_power = grid_import + consumed_solar_power + consumed_acc_power
 
 #*************Visualization*************
 print(opt)
@@ -131,7 +137,7 @@ plt.show()
 #-----Logging
 print("----------------------")
 print("** Overview **")
-print("Grid Pull: ",                               round(grid_pull, 2), "[kwh]", "(Before Charging Accumulator: ", round(grid_pull_pre_accumulator_charge, 2), "[kwh])")
+print("Grid Pull: ",                               round(grid_pull, 2), "[kwh]")
 print("Solar Pull: ",                              round(consumed_solar_power, 2), "[kwh] from", round(solar_power, 2), "[kwh]")
 print("Accumulators Pull: ",                       round(consumed_acc_power, 2), "[kwh] from", round(acc_power, 2), "[kwh]")
 
@@ -140,7 +146,7 @@ print("** Accumulator **")
 print("Min. power for preservation: ",          acc_soc_min * acc_capacity, "[kwh]", "/", acc_soc_min * 100, "%")
 print("Level Before Discharge:",                acc_power, "[kwh]", "/", round(acc_power/acc_capacity * 100, 2), "%")
 print("Level After Discharge:",                 acc_level_after_discharge, "[kwh]", "/", round(acc_level_after_discharge/acc_capacity * 100, 2), "%")
-print("Consumed Solar Power for Charging",      round(consumed_solar_power_for_acc_charge, 2), "[kwh]")
+print("Consumed Solar Power for Charging:",      round(consumed_solar_power_for_acc_charge, 2), "[kwh]")
 print("Level After Charging from Solar Power:", acc_level_after_charge, "[kwh]", "/", round(acc_level_after_charge/acc_capacity * 100, 2), "%")
 
 print("----------------------")
