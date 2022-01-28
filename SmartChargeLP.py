@@ -30,7 +30,7 @@ if car_soc < car_soc_min:
     car_soc_min_kwh = (car_soc_min - car_soc) * car_battery_capacity
 
 #------Household
-avg_home_consumption = 1                # Derived from previous data, maybe connect to TeslaAPI
+avg_home_consumption = 14.3                # Derived from previous data, maybe connect to TeslaAPI
 
 #------Total Power
 min_total_power_required = avg_home_consumption + car_soc_min_kwh          
