@@ -143,11 +143,11 @@ print("Accumulators Pull: ",                       round(consumed_acc_power, 2),
 
 print("----------------------")
 print("** Accumulator **")
-print("Min. power for preservation: ",          acc_soc_min * acc_capacity, "[kwh]", "/", acc_soc_min * 100, "%")
-print("Level Before Discharge:",                acc_power, "[kwh]", "/", round(acc_power/acc_capacity * 100, 2), "%")
-print("Level After Discharge:",                 acc_level_after_discharge, "[kwh]", "/", round(acc_level_after_discharge/acc_capacity * 100, 2), "%")
-print("Consumed Solar Power for Charging:",      round(consumed_solar_power_for_acc_charge, 2), "[kwh]")
-print("Level After Charging from Solar Power:", acc_level_after_charge, "[kwh]", "/", round(acc_level_after_charge/acc_capacity * 100, 2), "%")
+print("Min. power for preservation: ",          acc_soc_min * 100, "% /", acc_soc_min * acc_capacity, "[kwh]")
+print("Level Before Discharge:",                round(acc_power/acc_capacity * 100, 2), "% /", acc_power, "[kwh]")
+print("Level After Discharge:",                 round(acc_level_after_discharge/acc_capacity * 100, 2), "% /", acc_level_after_discharge, "[kwh]")
+print("Consumed Solar Power for Charging:",     round(consumed_solar_power_for_acc_charge, 2), "[kwh]")
+print("Level After Charging from Solar Power:", round(acc_level_after_charge/acc_capacity * 100, 2), "% /", acc_level_after_charge, "[kwh]")
 
 print("----------------------")
 print("** Home **")
@@ -166,5 +166,7 @@ print("Smart Utility Meter:", round(grid_pull, 2), "[kwh]")
 print("----------------------")
 
 print("Optimized Coefficient Values:", opt.x)
+
+# %%
 
 # %%
