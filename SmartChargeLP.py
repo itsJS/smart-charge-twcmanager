@@ -30,7 +30,7 @@ if car_soc < car_soc_min:
     car_soc_min_kwh = (car_soc_min - car_soc) * car_battery_capacity
 
 #------Household
-avg_home_consumption = 14.3                # Derived from previous data, maybe connect to TeslaAPI
+avg_home_consumption = 1                # Derived from previous data, maybe connect to TeslaAPI
 
 #------Total Power
 min_total_power_required = avg_home_consumption + car_soc_min_kwh          
@@ -86,20 +86,26 @@ opt = linprog(c=objective_function,
               method="simplex")
 
 #-----Post Evaluations
-#-Grid (Pull stands for import & export in respect to the sign)
+#-Grid - Pull stands for import(+) & export(-)
 grid_pull_pre_accumulator_charge = opt.x[0] * grid_power
-grid_pull = g_function(solar_power * (1-opt.x[1]), (1-acc_soc) * acc_capacity)
+grid_export = g_function(solar_power * (1-opt.x[1]), (1-acc_soc) * acc_capacity)
 
-#If no solar power remains to export to grid, that means one of two things: either we broke even or we imported power from grid 
 grid_import = 0
-if grid_pull == 0:
-    grid_pull = grid_pull_pre_accumulator_charge # needed for visualization, cause it depicts import/ export
-    grid_import = grid_pull_pre_accumulator_charge # needed for calculating total power consumed, as adding the grid pull when exporting power would mess up the total consumed power calculation
+# If no solar power remains to export to grid, that means: either we broke even with 
+# charging accumulator OR we imported power from grid. That is why we check if we 
+# imported from the grid through: grid_pull_pre_accumulator_charge
+if grid_export == 0 and grid_pull_pre_accumulator_charge > 0:
+    # needed for calculating total power consumed, as adding the 
+    # grid pull when exporting power would mess up the total 
+    # consumed power calculation
+    grid_import = grid_pull_pre_accumulator_charge 
 
+# needed for visualization, cause it depicts import/ export
+grid_pull = grid_import + grid_export
+    
 #-Solar
 consumed_solar_power_for_acc_charge = f_function(solar_power * (1-opt.x[1]), (1-acc_soc) * acc_capacity)
 consumed_solar_power = opt.x[1] * solar_power + consumed_solar_power_for_acc_charge
-excess_solar_power = solar_power * (1 - opt.x[1])
 
 #-Accumulator
 consumed_acc_power = opt.x[2] * acc_power
@@ -107,7 +113,7 @@ acc_level_after_discharge = round((acc_power - consumed_acc_power), 2)
 acc_level_after_charge = acc_level_after_discharge + consumed_solar_power_for_acc_charge
 
 #-Total Consumed Power
-total_pulled_power = grid_import + consumed_solar_power + consumed_acc_power
+total_pulled_power = round(grid_import + consumed_solar_power + consumed_acc_power, 2)
 
 #*************Visualization*************
 print(opt)
@@ -138,8 +144,8 @@ plt.show()
 print("----------------------")
 print("** Overview **")
 print("Grid Pull: ",                               round(grid_pull, 2), "[kwh]")
-print("Solar Pull: ",                              round(consumed_solar_power, 2), "[kwh] from", round(solar_power, 2), "[kwh]")
-print("Accumulators Pull: ",                       round(consumed_acc_power, 2), "[kwh] from", round(acc_power, 2), "[kwh]")
+print("Solar Consumption: ",                       round(consumed_solar_power, 2), "[kwh] from", round(solar_power, 2), "[kwh]")
+print("Accumulators Consumption: ",                round(consumed_acc_power, 2), "[kwh] from", round(acc_power, 2), "[kwh]")
 
 print("----------------------")
 print("** Accumulator **")
@@ -162,11 +168,9 @@ print("SoC after:",  round((car_soc + (round(total_pulled_power - avg_home_consu
 print("----------------------")
 
 print("Total Power Reserved for Consumption:", round(total_pulled_power, 2), "[kwh]")
+print("----------------------")
 print("Smart Utility Meter:", round(grid_pull, 2), "[kwh]")
 print("----------------------")
 
 print("Optimized Coefficient Values:", opt.x)
-
-# %%
-
 # %%
