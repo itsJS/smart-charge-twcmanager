@@ -44,12 +44,18 @@ grid_power = 1                      # Constant: 1[kWh]
 acc_soc = float(input("Enter acc soc:"))           # Read from TeslaAPI
 acc_soc_min = 0.2
 acc_capacity = 24.4
-acc_power = acc_soc * acc_capacity
 beta = 1
 
 if acc_soc < acc_soc_min:
-    acc_soc = acc_soc_min #TODO: why do I hardcode this?
-
+    # The LP optimizes while ensuring that the accumulator does not go below the 
+    # user-defined acc_soc_min. The only reason for discharge below 20% is preservation 
+    # reasons (not controlled by the LP) or external reasons. The optimizer can only 
+    # optimize if the accumulator shows a value between 20% and 100%. The accumulator 
+    # consumption is discarded if it is <=20%. The LP does not optimize if the value 
+    # acc_soc < acc_soc_min, therefore we hardcode it to equate acc_soc_min and thus 
+    # the LP knows that the accumulator should be discarded.
+    acc_soc = acc_soc_min 
+acc_power = acc_soc * acc_capacity
 #----Solar Power
 amps = float(input("Enter solar power amps:")) # Read from SolarAPI
 duration = float(input("Enter solar power duration:")) #Bug 18 - 31  SOLVED! Automate testing # Read from SolarAPI
@@ -173,4 +179,6 @@ print("Smart Utility Meter:", round(grid_pull, 2), "[kwh]")
 print("----------------------")
 
 print("Optimized Coefficient Values:", opt.x)
+# %%
+
 # %%
